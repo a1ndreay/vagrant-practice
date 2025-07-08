@@ -1,0 +1,45 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "Python 3",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			"VirtualMachine": "/mnt/d/Program Files/VirtualBox"
+		}
+	},
+	"features": {
+		"ghcr.io/hspaans/devcontainer-features/ansible-lint:2": {},
+		"ghcr.io/devcontainers-extra/features/ansible:2": {}
+	},
+	"runArgs": [
+		"--privileged",
+		"--cap-add=SYS_ADMIN",
+		"--device", "/dev/vsock:/dev/vsock",
+		"--cap-add=SYS_MODULE"
+	],
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	"mounts": [
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh/linux-lesson,target=/home/vscode/.ssh/linux-lesson,type=bind,readOnly=true",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh/known_hosts,target=/home/vscode/.ssh/known_hosts,type=bind,readOnly=true",
+		"source=C:/Windows/System32/cmd.exe,target=/mnt/c/Windows/System32/cmd.exe,type=bind,consistency=cached,readOnly=true",
+		"source=C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe,target=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe,type=bind,consistency=cached,readOnly=true"
+
+	],
+	"postCreateCommand": "sudo chown -R vscode:vscode /workspaces/ansible-dev-container && sudo chmod -R go-w /workspaces/ansible-dev-container && .devcontainer/install_packages.sh && echo 'export VAGRANT_WSL_ENABLE_WINDOWS_ACCESS=1' >> /home/vscode/.bashrc && echo 'export PATH=\"$PATH:$VirtualMachineHome\"' >> /home/vscode/.bashrc && echo 'export PATH=\"$PATH:/mnt/c/Windows/System32/\"' >> /home/vscode/.bashrc && echo 'export PATH=\"$PATH:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/\"' >> /home/vscode/.bashrc && echo 'export VAGRANT_WSL_WINDOWS_ACCESS_USER_HOME_PATH=\"/mnt/c/Users/Андрей/source/repos/ansible-dev-container\"' >> /home/vscode/.bashrc && echo 'export VAGRANT_HOME=\"/home/vscode/.vagrant.d\"' >> /home/vscode/.bashrc"
+
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

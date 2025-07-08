@@ -1,0 +1,5 @@
+#!/bin/bash
+
+{% for user, hash in user_passwords.items() %}
+usermod -p '{{ hash }}' {{ user }}
+{% endfor %}

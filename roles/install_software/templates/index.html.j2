@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Info</title>
+</head>
+<body>
+    <h1>System Information</h1>
+    <p><strong>Hostname:</strong> {{ ansible_hostname }}</p>
+    <p><strong>CPU:</strong> {{ ansible_processor | join(', ') }}</p>
+    <p><strong>RAM:</strong> {{ ansible_memory_mb.real.total }} MB</p>
+    <p><strong>Disk Space:</strong></p>
+    <ul>
+    {% for mount in ansible_mounts %}
+        <li>{{ mount.mount }}: {{ mount.size_total // 1024 // 1024 }} MB total, {{ mount.size_available // 1024 // 1024 }} MB available</li>
+    {% endfor %}
+    </ul>
+</body>
+</html>

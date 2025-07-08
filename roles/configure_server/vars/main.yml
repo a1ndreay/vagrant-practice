@@ -1,0 +1,7 @@
+---
+# openssl passwd -6 "secret_password"
+user_passwords: 
+  user1: "$6$QBINfgJDtQdv/K7C$Lx/qz8p8Q/Eh6JrwJtE7dIgZzKjcNQSu2I4/NqPGajXsR6n3iQ7BuaBRcdpRU8UgM2n9bO9LfwjTKIwcTTYde/"
+  user2: "$6$H9VUAsKNvfbRhS70$tyJ2kEDLkPJU3kAGi92gCh.WCG9zVDM0/6hfhLWMuATftZ6wQ9j3.j0MsIL/Cqtks1PitB6ELcXE/hXaB8ZJk/"
+  user3: "$6$.uYJKB/YK8UeDBa4$IwkIKleougi3nbj2leqAyjoG0Br0/J4n5DCCXzRnuQGOgFAFQ8LK.I7QElv286zlczsnNpGuA./Mek7XvmxtP."
+  

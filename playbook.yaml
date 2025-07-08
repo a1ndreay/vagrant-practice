@@ -1,0 +1,12 @@
+---
+- name: Install and configure Apache on CentOS servers
+  hosts: all
+  tasks:
+    - name: install_software
+      include_role:
+        name: install_software
+      when: role_name == 'install_software'
+    - name: configure_server
+      include_role:
+        name: configure_server
+      when: role_name == 'configure_server'   

@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for install_software
+# Очистить все созданные изменения
+clear_after_play: false  
+# Выполнять задачи перезагрузки системы
+play_reboot_tasks: false  

@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: MIT-0
+---
+# проверка на подключение
+- name: Wait for Connection
+  ping: {}
+
+# Собираем факты о системе, включая hostname, CPU, RAM и дисковое пространство
+- name: Собираем информацию о системе
+  ansible.builtin.setup:
+    gather_subset:
+      - 'all'  # Собираем все факты, чтобы получить hostname, CPU, RAM и диски
+
+- name: Устанавливаем Apache на CentOS
+  block:
+    # a. Подключение репозитория на конечном сервере
+    # В CentOS репозиторий для httpd уже доступен по умолчанию, поэтому эта задача пропускается
+    - name: a) Проверка доступности стандартного репозитория (пропускается для CentOS)
+      ansible.builtin.debug:
+        msg: "Репозиторий для httpd уже подключен в CentOS по умолчанию"
+
+    # b. Установка Apache из пакетов
+    - name: b) Установка Apache из пакетов
+      ansible.builtin.yum:
+        name: httpd
+        state: present
+        update_cache: yes
+
+    # c. Выполнение незамедлительно перезагрузки системы
+    - name: c) Выполнение незамедлительно перезагрузки системы
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        connect_timeout: 30 
+        post_reboot_delay: 30 
+        test_command: whoami  # Проверка доступности сервера после перезагрузки
+      become: true
+      when: play_reboot_tasks | bool
+
+    # d. Удаление сервиса Apache из автозагрузки системы
+    - name: d) Удаление сервиса Apache из автозагрузки системы
+      ansible.builtin.systemd:
+        name: httpd
+        enabled: false
+      when: clear_after_play | bool
+
+    # TODO: мб переписать на async command и выпонить в конце e. Выполнение отложенной перезагрузки системы 
+    - name: e) Выполнение отложенной перезагрузки системы
+      ansible.builtin.reboot:
+        pre_reboot_delay: 1  # Задержка 5m перед перезагрузкой
+      become: true
+      when: play_reboot_tasks | bool
+
+    # f. Выполнение команды по отображению состояния сервиса Apache
+    - name: f) Проверка состояния сервиса Apache
+      ansible.builtin.systemd:
+        name: httpd
+      register: httpd_status
+
+    - name: f) Вывод состояния сервиса Apache
+      ansible.builtin.debug:
+        msg: "Состояние сервиса Apache: {{ httpd_status.status.ActiveState }}"
+
+    # g. Добавление сервиса Apache в автозагрузку системы
+    - name: g) Добавление сервиса Apache в автозагрузку системы
+      ansible.builtin.systemd:
+        name: httpd
+        enabled: true
+        state: reloaded
+
+    # h. Разрешение служб http и https в межсетевом экране
+    - name: h) Разрешение служб http и https в межсетевом экране
+      ansible.builtin.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - http
+        - https
+
+    # TODO: 
+    # RUN addgroup --gid "10000" "www" \ &&  adduser --disabled-password --gecos "" --home "/www/public_html" --ingroup www --uid 10000 "www"
+    # RUN mkdir -p /www/public_html
+    # ADD index.html /www/public_html/
+    # RUN chown www:www /www/public_html
+    # i. Создание index.html с информацией о системе
+    - name: i) Создание index.html
+      ansible.builtin.template:
+        src: index.html.j2
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+
+    # j. Полное удаление веб-сервера, пакетов, конфигов, правил
+    - name: j) Удаление Apache и связанных компонентов
+      block:
+        - name: Удаление пакета Apache
+          ansible.builtin.yum:
+            name: httpd
+            state: absent
+
+        - name: Удаление конфигурационных файлов Apache
+          ansible.builtin.file:
+            path: /etc/httpd
+            state: absent
+
+        - name: Удаление веб-контента
+          ansible.builtin.file:
+            path: /var/www/html/index.html
+            state: absent
+
+        - name: Закрытие портов http и https в межсетевом экране
+          ansible.builtin.firewalld:
+            service: "{{ item }}"
+            permanent: true
+            state: disabled
+            immediate: true
+          loop:
+            - http
+            - https
+      when: clear_after_play | bool
+
+  when: ansible_distribution == "CentOS"
+  become: true

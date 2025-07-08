@@ -1,0 +1,136 @@
+---
+# tasks file for configure_server
+- name: Wait for Connection
+  ping: {}
+
+# Собираем факты о системе, включая hostname, CPU, RAM и дисковое пространство
+- name: Собираем информацию о системе
+  ansible.builtin.setup:
+    gather_subset:
+      - 'all'  # Собираем все факты, чтобы получить hostname, CPU, RAM и диски
+
+# Провести полную очистку настроенных ранее действий, рекомендуется вызывать задачу используя теги, т.е. по умолчанию задача не выполняется.
+- name: configure_server
+  block:
+    # a.	Создание 3-х локальных учетных записей пользователей, пользователи должны создаваться с использованием цикла;
+    - name: Создание пользователей
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: present
+        shell: /bin/bash
+      loop:
+        - user1
+        - user2
+        - user3
+
+    # b.	Выдать созданным ранее пользователям права sudo, без запроса пароля;
+    - name: Выдача прав sudo без запроса пароля
+      ansible.builtin.copy:
+        content: "{{ item }} ALL=(ALL:ALL) NOPASSWD:ALL"
+        dest: "/etc/sudoers.d/{{ item }}"
+        mode: "0440"
+        owner: root
+        group: root
+      loop:
+        - user1
+        - user2
+        - user3
+        
+
+    # c.	У каждого пользователя в переменном окружении создать переменную, которая выводит имя пользователя;
+    - name: Установка переменной окружения для пользователей
+      ansible.builtin.lineinfile:
+        line: "export USER={{ item }}"
+        path: "/home/{{ item }}/.bashrc"
+        insertafter: EOF
+        create: yes
+        mode: "0644"
+        owner: "{{ item }}"
+        group: "{{ item }}"
+      loop:
+        - user1
+        - user2
+        - user3
+
+    # d.	Из-под каждого пользователя, средствами Ansible, создать в домашнем каталоге пользователя текстовый файл, который выводит hostname и user используя переменные окружения;
+    - name: Создание текстового файла с hostname и user через envsubst
+      ansible.builtin.shell: |
+        echo "Hostname: {{ ansible_hostname }}\nUser: \$USER" | sudo -u {{ item }} envsubst > /home/{{ item }}/info.txt
+      args:
+        executable: /bin/bash
+      loop:
+        - user1
+        - user2
+        - user3
+
+    - name: Установка прав на info.txt
+      ansible.builtin.file:
+        path: "/home/{{ item }}/info.txt"
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        mode: "0644"
+      loop:
+        - user1
+        - user2
+        - user3
+    # e.	Создать новую дополнительную группу в ОС Linux;
+    - name: Создание новой группы
+      ansible.builtin.group:
+        name: test_group
+        state: present
+
+    # f.	Добавить пользователей в новую созданную ранее группу;
+    - name: Добавление пользователей в новую группу
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: test_group
+        append: true
+      loop:
+        - user1
+        - user2
+        - user3
+
+    # g.	Создать в /etc/tets_shell каталог в котором full-права получают пользователи, находящиеся в созданной ранее группе;
+    - name: Создание каталога /etc/test_shell с правами для группы test_group
+      ansible.builtin.file:
+        path: /etc/test_shell
+        state: directory
+        owner: root
+        group: test_group
+        mode: '0770'
+
+    # h.	Создать bash-скрипт, используя jinja-шаблон, который изменит пароли у созданных ранее пользователей, пароль в чистом виде использовать нельзя, предполагается использование секретов или hash;
+    - name: Сгенерировать скрипт смены паролей
+      ansible.builtin.template:
+        src: usermod.sh.j2
+        dest: /usr/local/bin/set_passwords.sh
+        mode: '0755'
+        owner: root
+        group: root
+      
+
+    # i.	Выполнить bash-скрипт из-под пользователя root;
+    - name: Выполнить скрипт смены паролей
+      ansible.builtin.command: /usr/local/bin/set_passwords.sh
+      become: true
+
+    # j.	Средствами Ansible, регулярным выражением, сделать созданным ранее пользователям запрет на подключение по ssh;
+    - name: Запретить пользователям доступ по SSH
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        marker: "# {mark} ANSIBLE DENY USERS"
+        block: |
+          DenyUsers {{ ssh_deny_users | join(' ') }}
+      vars:
+        ssh_deny_users:
+          - user1
+          - user2
+          - user3
+
+    - name: Перезапуск SSH
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+
+
+  when: ansible_distribution == "CentOS"
