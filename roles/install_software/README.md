@@ -5,7 +5,7 @@ INSTALL SOFTWARE
 ---
 В корне репозитория (там где находится Vagrantfile) запустите следующую команду:
 ```bash
-vagrant --pass-var='{"run_pytest":"false","ansible_role_name":"install_software","ansible_clear_after_play":"true","ansible_play_reboot_tasks":"true","http_port_forward":"8080"}' up --provision
+vagrant --pass-var='{"run_pytest":"false","ansible_role_name":"install_software","ansible_clear_after_play":"false","ansible_play_reboot_tasks":"false","http_port_forward":"8080"}' up --provision && vagrant ssh-config > .vagrant/ssh-config && py.test --hosts=default --ssh-config=.vagrant/ssh-config tests/install_software/tests.py
 ```
 
 Уничтожьте созданную инфраструктуру с помощью команду:
