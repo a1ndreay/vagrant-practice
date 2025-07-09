@@ -3,7 +3,7 @@ CONFIGURE SERVER
 
 Запуск роли __configure_server__ с помощью vagrant:
 ---
-В корне репозитория (там где находится Vagrantfile) запустите следующую команду:
+В корне репозитория (там где находится Vagrantfile) запустите следующую команду, она развернёт одну ВМ с внутренним сетевым интерфейсом и NAT., автоматически установит на него роль и выполнит тест с помощью testinfra:
 ```bash
 vagrant --pass-var='{"run_pytest":"false","ansible_role_name":"configure_server"}' up --provision && vagrant ssh-config > .vagrant/ssh-config && py.test --hosts=default --ssh-config=.vagrant/ssh-config tests/configure_server/tests.py
 ```
